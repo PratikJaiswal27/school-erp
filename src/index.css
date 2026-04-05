@@ -1,0 +1,22 @@
+body {
+  background-color: #f8f9fa;
+}
+
+.card {
+  border: none;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+}
+
+/* Offcanvas overlay fix */
+.offcanvas {
+  visibility: hidden;
+}
+.offcanvas.show {
+  visibility: visible;
+}
+.sticky-col {
+  position: sticky;
+  left: 0;
+  background-color: #f8f9fa;
+  z-index: 1;
+}
