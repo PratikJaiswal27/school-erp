@@ -15,8 +15,8 @@ import Settings from './pages/principal/Settings';
 import ReportCards from './pages/principal/ReportCards';
 import PrincipalFees from './pages/principal/Fees';
 import PrincipalDocuments from './pages/principal/Documents';
-import PrincipalTimetable from './pages/principal/Timetable';
-import PrincipalTeacherProfile from './pages/principal/TeacherProfile'; // NEW
+import PrincipalTimetable from './pages/principal/TimeTable';  // fixed casing (was Timetable)
+import PrincipalTeacherProfile from './pages/principal/TeacherProfile';
 
 // Teacher pages
 import TeacherDashboard from './pages/teacher/Dashboard';
@@ -25,7 +25,7 @@ import MyAttendance from './pages/teacher/MyAttendance';
 import TeacherTimetable from './pages/teacher/Timetable';
 import MarksEntry from './pages/teacher/MarksEntry';
 import MyStudents from './pages/teacher/MyStudents';
-import TeacherOwnProfile from './pages/teacher/Profile'; // renamed
+import TeacherOwnProfile from './pages/teacher/Profile';
 
 // Parent pages
 import ParentDashboard from './pages/parent/Dashboard';
@@ -35,14 +35,6 @@ import ParentReportCards from './pages/parent/ReportCards';
 
 // Generic Notifications page for all roles
 import Notifications from './pages/Notifications';
-
-// Placeholder for any remaining pages (if needed)
-const Placeholder: React.FC<{ title: string }> = ({ title }) => (
-  <div className="container">
-    <h1>{title}</h1>
-    <p>This page is under construction.</p>
-  </div>
-);
 
 function AppRoutes() {
   const { user } = useAuth();
@@ -69,7 +61,7 @@ function AppRoutes() {
             <Route path="/students" element={<Students />} />
             <Route path="/attendance" element={<Attendance />} />
             <Route path="/teachers" element={<Teachers />} />
-            <Route path="/teachers/:id" element={<PrincipalTeacherProfile />} /> {/* NEW */}
+            <Route path="/teachers/:id" element={<PrincipalTeacherProfile />} />
             <Route path="/parents" element={<Parents />} />
             <Route path="/assign-attendance" element={<AssignAttendance />} />
             <Route path="/settings" element={<Settings />} />
