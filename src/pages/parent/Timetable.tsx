@@ -32,7 +32,6 @@ const ParentTimetable: React.FC = () => {
     setLoading(true);
     setError(null);
     try {
-      // Get parent's linked student
       const { data: parent, error: parentError } = await supabase
         .from('parents')
         .select('student_id')
@@ -45,7 +44,6 @@ const ParentTimetable: React.FC = () => {
         return;
       }
 
-      // Get student's class
       const { data: student, error: studentError } = await supabase
         .from('students')
         .select('class_id, classes:class_id(name)')
@@ -57,9 +55,18 @@ const ParentTimetable: React.FC = () => {
         setLoading(false);
         return;
       }
-      setClassName(student.classes?.name || '');
 
-      // Fetch timetable for that class
+      let classNameValue = '';
+      if (student.classes) {
+        const classData = student.classes as any;
+        if (Array.isArray(classData) && classData.length > 0) {
+          classNameValue = classData[0]?.name || '';
+        } else if (!Array.isArray(classData) && classData.name) {
+          classNameValue = classData.name;
+        }
+      }
+      setClassName(classNameValue);
+
       const { data: entries, error: ttError } = await supabase
         .from('timetable')
         .select(`
@@ -80,9 +87,18 @@ const ParentTimetable: React.FC = () => {
         PERIODS.forEach(period => {
           const entry = entries?.find(e => e.day === day && e.period_number === period);
           if (entry) {
+            let teacherName = '-';
+            if (entry.teachers) {
+              const teacherData = entry.teachers as any;
+              if (Array.isArray(teacherData) && teacherData.length > 0) {
+                teacherName = teacherData[0]?.name || '-';
+              } else if (!Array.isArray(teacherData) && teacherData.name) {
+                teacherName = teacherData.name;
+              }
+            }
             organized[day][period] = {
               subject: entry.subject || '-',
-              teacher_name: entry.teachers?.name || '-',
+              teacher_name: teacherName,
               start_time: entry.start_time ? formatISTTime(entry.start_time) : '-',
               end_time: entry.end_time ? formatISTTime(entry.end_time) : '-'
             };

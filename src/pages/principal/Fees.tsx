@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import { getISTDate } from '../../lib/utils';
 import Toast from '../../components/Toast';
+import { useAuth } from '../../contexts/AuthContext';
+import ConfirmModal from '../../components/ConfirmModal';
 
 interface Student {
   id: string;
@@ -20,6 +22,7 @@ interface Fee {
 }
 
 const PrincipalFees: React.FC = () => {
+  const { user } = useAuth();
   const [students, setStudents] = useState<Student[]>([]);
   const [fees, setFees] = useState<Fee[]>([]);
   const [loading, setLoading] = useState(true);
@@ -30,6 +33,8 @@ const PrincipalFees: React.FC = () => {
   });
   const [classes, setClasses] = useState<{ id: string; name: string }[]>([]);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [pendingReminder, setPendingReminder] = useState<{ monthName: string } | null>(null);
 
   useEffect(() => {
     fetchClasses();
@@ -69,7 +74,6 @@ const PrincipalFees: React.FC = () => {
     const studentList = (studentsData || []).map(s => {
       let className = '';
       if (s.classes) {
-        // Convert to array if it's not already (Supabase sometimes returns array, sometimes object)
         const classesArray = Array.isArray(s.classes) ? s.classes : [s.classes];
         className = classesArray[0]?.name || '';
       }
@@ -136,13 +140,52 @@ const PrincipalFees: React.FC = () => {
     setToast({ message: `Fee updated for ${students.find(s => s.id === studentId)?.name}`, type: 'success' });
   };
 
-  const months = [];
-  const today = new Date();
-  for (let i = 0; i < 12; i++) {
-    const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
-    const monthStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-    months.push(monthStr);
-  }
+  const sendReminder = async () => {
+    const monthName = new Date(selectedMonth + '-01').toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
+    const { error: notifError } = await supabase.from('notifications').insert({
+      title: `Fee Reminder: ${monthName}`,
+      message: `The fee for the month of ${monthName} is pending. Kindly pay at your earliest convenience. If you have already paid, please ignore this message.`,
+      target: 'parents',
+      is_holiday: false,
+      created_by: user?.id,
+    });
+    if (notifError) {
+      setToast({ message: 'Failed to send notification', type: 'error' });
+    } else {
+      setToast({ message: `Reminder sent to all parents.`, type: 'success' });
+    }
+  };
+
+  const handleNotifyUnpaid = async () => {
+    const monthName = new Date(selectedMonth + '-01').toLocaleDateString('en-IN', { month: 'long', year: 'numeric' });
+    // Check if a reminder for this month already exists
+    const { data: existing, error } = await supabase
+      .from('notifications')
+      .select('id')
+      .eq('title', `Fee Reminder: ${monthName}`)
+      .eq('created_by', user?.id)
+      .maybeSingle();
+
+    if (error) {
+      setToast({ message: 'Error checking existing reminders', type: 'error' });
+      return;
+    }
+
+    if (existing) {
+      setPendingReminder({ monthName });
+      setShowConfirmModal(true);
+    } else {
+      await sendReminder();
+    }
+  };
+
+  const confirmSendAgain = async () => {
+    if (pendingReminder) {
+      await sendReminder();
+    }
+    setShowConfirmModal(false);
+    setPendingReminder(null);
+  };
 
   if (loading) return <div className="text-center mt-5">Loading...</div>;
 
@@ -150,20 +193,26 @@ const PrincipalFees: React.FC = () => {
     <div className="container py-4">
       <h2>Fees Management</h2>
       <div className="row mb-3">
-        <div className="col-md-4">
+        <div className="col-md-3">
           <label>Class</label>
           <select className="form-select" value={selectedClass} onChange={e => setSelectedClass(e.target.value)}>
             <option value="">All Classes</option>
             {classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
         </div>
-        <div className="col-md-4">
+        <div className="col-md-3">
           <label>Month</label>
-          <select className="form-select" value={selectedMonth} onChange={e => setSelectedMonth(e.target.value)}>
-            {months.map(m => (
-              <option key={m} value={m}>{new Date(m + '-01').toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })}</option>
-            ))}
-          </select>
+          <input
+            type="month"
+            className="form-control"
+            value={selectedMonth}
+            onChange={e => setSelectedMonth(e.target.value)}
+          />
+        </div>
+        <div className="col-md-3 align-self-end">
+          <button className="btn btn-warning" onClick={handleNotifyUnpaid}>
+            Send Fee Reminder
+          </button>
         </div>
       </div>
 
@@ -210,6 +259,14 @@ const PrincipalFees: React.FC = () => {
           </tbody>
         </table>
       </div>
+
+      <ConfirmModal
+        show={showConfirmModal}
+        onClose={() => setShowConfirmModal(false)}
+        onConfirm={confirmSendAgain}
+        title="Send Reminder Again?"
+        message={`A reminder for this month has already been sent. Do you want to send another one?`}
+      />
 
       {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
     </div>

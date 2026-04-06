@@ -15,7 +15,7 @@ import Settings from './pages/principal/Settings';
 import ReportCards from './pages/principal/ReportCards';
 import PrincipalFees from './pages/principal/Fees';
 import PrincipalDocuments from './pages/principal/Documents';
-import PrincipalTimetable from './pages/principal/TimeTable';  // fixed casing (was Timetable)
+import PrincipalTimetable from './pages/principal/TimeTable';
 import PrincipalTeacherProfile from './pages/principal/TeacherProfile';
 
 // Teacher pages
@@ -32,6 +32,7 @@ import ParentDashboard from './pages/parent/Dashboard';
 import ChildAttendance from './pages/parent/ChildAttendance';
 import ParentTimetable from './pages/parent/Timetable';
 import ParentReportCards from './pages/parent/ReportCards';
+import ParentFees from './pages/parent/Fees';   // NEW
 
 // Generic Notifications page for all roles
 import Notifications from './pages/Notifications';
@@ -91,6 +92,7 @@ function AppRoutes() {
           <>
             <Route path="/child-attendance" element={<ChildAttendance />} />
             <Route path="/timetable" element={<ParentTimetable />} />
+            <Route path="/fee-history" element={<ParentFees />} />
             <Route path="/notifications" element={<Notifications />} />
             <Route path="/report-cards" element={<ParentReportCards />} />
           </>

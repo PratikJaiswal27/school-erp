@@ -46,6 +46,7 @@ const Layout: React.FC = () => {
       { label: 'Dashboard', path: '/dashboard' },
       { label: "My Child's Attendance", path: '/child-attendance' },
       { label: 'Timetable', path: '/timetable' },
+      { label: 'Fee History', path: '/fee-history' },
       { label: 'Notifications', path: '/notifications' },
       { label: 'Report Cards', path: '/report-cards' },
     ],
