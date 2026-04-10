@@ -279,7 +279,8 @@ const MarksEntry: React.FC = () => {
                 </button>
               </div>
               <div className="table-responsive">
-                <table className="table table-bordered">
+                {/* Added class "marks-table" to keep headers visible on mobile */}
+                <table className="table table-bordered marks-table">
                   <thead>
                     <tr>
                       <th>Subject</th>

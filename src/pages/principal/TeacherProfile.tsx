@@ -13,10 +13,15 @@ interface Teacher {
   phone: string;
   email: string;
   profile_image: string | null;
-  monthly_fee_paid: boolean;
-  last_paid_month: string | null;
   username?: string;
   assigned_classes: { id: string; name: string }[];
+}
+
+interface SalaryRecord {
+  id: string;
+  month: string;
+  paid: boolean;
+  paid_date: string | null;
 }
 
 interface Document {
@@ -37,14 +42,24 @@ const TeacherProfile: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
-  const [updatingFee, setUpdatingFee] = useState(false);
   const [documents, setDocuments] = useState<Document[]>([]);
   const [uploading, setUploading] = useState(false);
+
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);
+  const [salaryRecords, setSalaryRecords] = useState<SalaryRecord[]>([]);
+  const [updatingSalary, setUpdatingSalary] = useState(false);
+
+  const currentSalaryRecord = salaryRecords.find(rec => {
+    const [year, month] = rec.month.split('-');
+    return parseInt(year) === selectedYear && parseInt(month) === selectedMonth;
+  });
 
   useEffect(() => {
     if (!id) return;
     fetchTeacher();
     fetchDocuments();
+    fetchSalaryRecords();
   }, [id]);
 
   const fetchTeacher = async () => {
@@ -73,6 +88,18 @@ const TeacherProfile: React.FC = () => {
       }
     } catch (err: any) {
       setToast({ message: err.message, type: 'error' });
+    }
+  };
+
+  const fetchSalaryRecords = async () => {
+    if (!id) return;
+    const { data, error } = await supabase
+      .from('teacher_salary')
+      .select('*')
+      .eq('teacher_id', id)
+      .order('month', { ascending: true });
+    if (!error && data) {
+      setSalaryRecords(data);
     }
   };
 
@@ -157,29 +184,42 @@ const TeacherProfile: React.FC = () => {
     await fetchTeacher();
   };
 
-  const handleToggleFee = async () => {
+  const handleSalaryToggle = async () => {
     if (!teacher) return;
-    setUpdatingFee(true);
+    setUpdatingSalary(true);
+    const monthStr = `${selectedYear}-${String(selectedMonth).padStart(2, '0')}-01`;
     try {
-      const newStatus = !teacher.monthly_fee_paid;
-      const { error } = await supabase
-        .from('teachers')
-        .update({
-          monthly_fee_paid: newStatus,
-          last_paid_month: newStatus ? getISTDate() : null,
-        })
-        .eq('id', teacher.id);
-      if (error) throw error;
-      setToast({ message: `Salary status updated to ${newStatus ? 'Paid' : 'Unpaid'}`, type: 'success' });
-      fetchTeacher();
+      if (currentSalaryRecord) {
+        const newPaid = !currentSalaryRecord.paid;
+        const { error } = await supabase
+          .from('teacher_salary')
+          .update({
+            paid: newPaid,
+            paid_date: newPaid ? getISTDate() : null,
+          })
+          .eq('id', currentSalaryRecord.id);
+        if (error) throw error;
+        setToast({ message: `Salary for ${monthStr} marked as ${newPaid ? 'Paid' : 'Unpaid'}`, type: 'success' });
+      } else {
+        const { error } = await supabase
+          .from('teacher_salary')
+          .insert({
+            teacher_id: teacher.id,
+            month: monthStr,
+            paid: true,
+            paid_date: getISTDate(),
+          });
+        if (error) throw error;
+        setToast({ message: `Salary for ${monthStr} marked as Paid`, type: 'success' });
+      }
+      await fetchSalaryRecords();
     } catch (err: any) {
       setToast({ message: err.message, type: 'error' });
     } finally {
-      setUpdatingFee(false);
+      setUpdatingSalary(false);
     }
   };
 
-  // Document handlers
   const handleDocumentUpload = async (files: FileList) => {
     if (!teacher) return;
     setUploading(true);
@@ -237,6 +277,10 @@ const TeacherProfile: React.FC = () => {
 
   if (!teacher) return <div className="text-center mt-5">Loading...</div>;
 
+  const yearOptions = [];
+  for (let y = 2020; y <= 2030; y++) yearOptions.push(y);
+  const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+
   return (
     <div className="container py-4">
       <div className="card">
@@ -276,18 +320,6 @@ const TeacherProfile: React.FC = () => {
                   </div>
                   <div className="col-md-6">
                     <p><strong>Assigned Classes:</strong> {teacher.assigned_classes.map(c => c.name).join(', ') || 'None'}</p>
-                    <p>
-                      <strong>Salary Paid:</strong>{' '}
-                      <span className={`badge ${teacher.monthly_fee_paid ? 'bg-success' : 'bg-danger'}`}>
-                        {teacher.monthly_fee_paid ? 'Yes' : 'No'}
-                      </span>
-                      {teacher.last_paid_month && <small className="ms-2">(Last paid: {new Date(teacher.last_paid_month).toLocaleDateString()})</small>}
-                    </p>
-                    {user?.role === 'principal' && (
-                      <button className="btn btn-sm btn-warning mt-2" onClick={handleToggleFee} disabled={updatingFee}>
-                        {updatingFee ? 'Updating...' : (teacher.monthly_fee_paid ? 'Mark Unpaid' : 'Mark Paid')}
-                      </button>
-                    )}
                   </div>
                 </div>
               ) : (
@@ -314,6 +346,74 @@ const TeacherProfile: React.FC = () => {
                   </button>
                 </form>
               )}
+            </div>
+          </div>
+
+          <hr />
+
+          {/* Salary Section */}
+          <div className="row mt-4">
+            <div className="col-md-12">
+              <h4>Salary History</h4>
+              <div className="row mb-3">
+                <div className="col-md-3">
+                  <label>Year</label>
+                  <select className="form-select" value={selectedYear} onChange={e => setSelectedYear(parseInt(e.target.value))}>
+                    {yearOptions.map(y => <option key={y} value={y}>{y}</option>)}
+                  </select>
+                </div>
+                <div className="col-md-3">
+                  <label>Month</label>
+                  <select className="form-select" value={selectedMonth} onChange={e => setSelectedMonth(parseInt(e.target.value))}>
+                    {monthNames.map((name, idx) => <option key={idx + 1} value={idx + 1}>{name}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div className="table-responsive">
+                <table className="table table-bordered">
+                  <thead>
+                    <tr>
+                      <th>Month</th>
+                      <th>Status</th>
+                      <th>Paid Date</th>
+                      {user?.role === 'principal' && <th>Action</th>}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {currentSalaryRecord ? (
+                      <tr>
+                        <td>{monthNames[selectedMonth - 1]} {selectedYear}</td>
+                        <td>{currentSalaryRecord.paid ? 'Paid' : 'Unpaid'}</td>
+                        <td>{currentSalaryRecord.paid_date ? new Date(currentSalaryRecord.paid_date).toLocaleDateString() : '-'}</td>
+                        {user?.role === 'principal' && (
+                          <td>
+                            <button
+                              className={`btn btn-sm ${currentSalaryRecord.paid ? 'btn-warning' : 'btn-success'}`}
+                              onClick={handleSalaryToggle}
+                              disabled={updatingSalary}
+                            >
+                              {currentSalaryRecord.paid ? 'Mark Unpaid' : 'Mark Paid'}
+                            </button>
+                          </td>
+                        )}
+                      </tr>
+                    ) : (
+                      <tr>
+                        <td>{monthNames[selectedMonth - 1]} {selectedYear}</td>
+                        <td>No record</td>
+                        <td>-</td>
+                        {user?.role === 'principal' && (
+                          <td>
+                            <button className="btn btn-sm btn-success" onClick={handleSalaryToggle} disabled={updatingSalary}>
+                              Mark Paid
+                            </button>
+                          </td>
+                        )}
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
             </div>
           </div>
 

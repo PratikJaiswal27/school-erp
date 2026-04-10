@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import Toast from '../../components/Toast';
 
-const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-const PERIODS = Array.from({ length: 8 }, (_, i) => i + 1);
+const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+const PERIODS = Array.from({ length: 7 }, (_, i) => i + 1);
 
 interface TimetableEntry {
   id?: string;
@@ -105,6 +105,7 @@ const PrincipalTimetable: React.FC = () => {
     setSaving(true);
     const entriesToUpsert: any[] = [];
     for (const day of DAYS) {
+      if (day === 'Saturday' || day === 'Sunday') continue;
       for (const period of PERIODS) {
         const entry = timetable[day][period];
         if (entry.subject || entry.teacher_id || entry.start_time || entry.end_time) {
@@ -130,6 +131,46 @@ const PrincipalTimetable: React.FC = () => {
     } finally {
       setSaving(false);
     }
+  };
+
+  const renderPeriodCell = (day: string, period: number) => {
+    const entry = timetable[day]?.[period];
+    if (!entry) return <td key={period} data-label={`Period ${period}`}>-</td>;
+    return (
+      <td key={period} data-label={`Period ${period}`}>
+        <div className="mb-2">
+          <input
+            type="text"
+            className="form-control form-control-sm mb-1"
+            placeholder="Subject"
+            value={entry.subject || ''}
+            onChange={(e) => updateEntry(day, period, 'subject', e.target.value)}
+          />
+          <select
+            className="form-select form-select-sm mb-1"
+            value={entry.teacher_id || ''}
+            onChange={(e) => updateEntry(day, period, 'teacher_id', e.target.value)}
+          >
+            <option value="">Select Teacher</option>
+            {allTeachers.map(t => (
+              <option key={t.id} value={t.id}>{t.name}</option>
+            ))}
+          </select>
+          <input
+            type="time"
+            className="form-control form-control-sm mb-1"
+            value={entry.start_time || ''}
+            onChange={(e) => updateEntry(day, period, 'start_time', e.target.value)}
+          />
+          <input
+            type="time"
+            className="form-control form-control-sm"
+            value={entry.end_time || ''}
+            onChange={(e) => updateEntry(day, period, 'end_time', e.target.value)}
+          />
+        </div>
+      </td>
+    );
   };
 
   if (loading) return <div className="text-center mt-5">Loading...</div>;
@@ -164,52 +205,27 @@ const PrincipalTimetable: React.FC = () => {
                 </tr>
               </thead>
               <tbody>
-                {DAYS.map(day => (
-                  <tr key={day}>
-                    <th className="sticky-col">{day}</th>
-                    {PERIODS.map(period => {
-                      const entry = timetable[day]?.[period];
-                      if (!entry) return <td key={period}>-</td>;
-                      return (
-                        <td key={period}>
-                          <div className="mb-2">
-                            <input
-                              type="text"
-                              className="form-control form-control-sm mb-1"
-                              placeholder="Subject"
-                              value={entry.subject || ''}
-                              onChange={(e) => updateEntry(day, period, 'subject', e.target.value)}
-                            />
-                            <select
-                              className="form-select form-select-sm mb-1"
-                              value={entry.teacher_id || ''}
-                              onChange={(e) => updateEntry(day, period, 'teacher_id', e.target.value)}
-                            >
-                              <option value="">Select Teacher</option>
-                              {allTeachers.map(t => (
-                                <option key={t.id} value={t.id}>{t.name}</option>
-                              ))}
-                            </select>
-                            <input
-                              type="time"
-                              className="form-control form-control-sm mb-1"
-                              value={entry.start_time || ''}
-                              onChange={(e) => updateEntry(day, period, 'start_time', e.target.value)}
-                            />
-                            <input
-                              type="time"
-                              className="form-control form-control-sm"
-                              value={entry.end_time || ''}
-                              onChange={(e) => updateEntry(day, period, 'end_time', e.target.value)}
-                            />
-                          </div>
-                        </td>
-                      );
-                    })}
-                  </tr>
-                ))}
+                {DAYS.map(day => {
+                  if (day === 'Saturday' || day === 'Sunday') {
+                    return (
+                      <tr key={day}>
+                        <th className="sticky-col">{day}</th>
+                        <td colSpan={PERIODS.length} className="text-center text-muted">Holiday</td>
+                      </tr>
+                    );
+                  }
+                  return (
+                    <tr key={day}>
+                      <th className="sticky-col">{day}</th>
+                      {PERIODS.map(period => renderPeriodCell(day, period))}
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
+          </div>
+          <div className="mt-2 text-muted">
+            <small>🍽️ Lunch break: 11:40 AM - 12:00 PM (after Period 4)</small>
           </div>
           <button className="btn btn-primary mt-3" onClick={saveTimetable} disabled={saving}>
             {saving ? 'Saving...' : 'Save Timetable'}

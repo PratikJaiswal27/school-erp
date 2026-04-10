@@ -12,8 +12,6 @@ interface Teacher {
   phone: string;
   email: string;
   profile_image: string | null;
-  monthly_fee_paid: boolean;
-  last_paid_month: string | null;
   user_id?: string;
   username?: string;
   assigned_classes: { class_id: string; class_name: string }[];
@@ -245,20 +243,6 @@ const Teachers: React.FC = () => {
     }
   };
 
-  const handleToggleFee = async (teacherId: string, currentPaid: boolean) => {
-    try {
-      const { error } = await supabase
-        .from('teachers')
-        .update({ monthly_fee_paid: !currentPaid })
-        .eq('id', teacherId);
-      if (error) throw error;
-      setToast({ message: `Salary status updated`, type: 'success' });
-      fetchTeachers();
-    } catch (err: any) {
-      setToast({ message: err.message || 'Update failed', type: 'error' });
-    }
-  };
-
   if (loading) return <div className="text-center mt-5">Loading...</div>;
 
   return (
@@ -278,7 +262,6 @@ const Teachers: React.FC = () => {
               <th>Phone</th>
               <th>Email</th>
               <th>Assigned Classes</th>
-              <th>Salary Given</th>
               <th>Username</th>
               <th>Actions</th>
             </tr>
@@ -303,13 +286,6 @@ const Teachers: React.FC = () => {
                 <td>{teacher.phone}</td>
                 <td>{teacher.email}</td>
                 <td>{teacher.assigned_classes.map(c => c.class_name).join(', ')}</td>
-                <td>
-                  <input
-                    type="checkbox"
-                    checked={teacher.monthly_fee_paid}
-                    onChange={() => handleToggleFee(teacher.id, teacher.monthly_fee_paid)}
-                  />
-                </td>
                 <td>{teacher.username}</td>
                 <td>
                   <button className="btn btn-sm btn-info me-1" onClick={() => {
@@ -338,7 +314,7 @@ const Teachers: React.FC = () => {
         </table>
       </div>
 
-      {/* Add/Edit Modal */}
+      {/* Add/Edit Modal (unchanged) */}
       <div className={`modal fade ${showAddModal || showEditModal ? 'show d-block' : ''}`} style={{ backgroundColor: 'rgba(0,0,0,0.5)' }}>
         <div className="modal-dialog">
           <div className="modal-content">

@@ -54,15 +54,27 @@ const StudentProfile: React.FC = () => {
   const [uploading, setUploading] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
 
+  // Fee filter states
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1); // 1-12
+  const currentFeeRecord = fees.find(f => {
+    const [year, month] = f.month.split('-');
+    return parseInt(year) === selectedYear && parseInt(month) === selectedMonth;
+  });
+
   // Fetch student data, classes, attendance, fees, documents
   useEffect(() => {
     if (!id) return;
     fetchStudent();
     fetchClasses();
     fetchAttendance();
-    fetchFees();
     fetchDocuments();
   }, [id]);
+
+  // Fetch fees when year/month changes
+  useEffect(() => {
+    if (id) fetchFees();
+  }, [id, selectedYear, selectedMonth]);
 
   const fetchStudent = async () => {
     try {
@@ -175,18 +187,35 @@ const StudentProfile: React.FC = () => {
     }
   };
 
-  const handleFeeToggle = async (feeId: string, currentPaid: boolean) => {
+  const handleFeeToggle = async () => {
+    if (!student) return;
+    const monthStr = `${selectedYear}-${String(selectedMonth).padStart(2, '0')}-01`;
+    const existing = fees.find(f => f.month === monthStr);
     try {
-      const { error } = await supabase
-        .from('fees')
-        .update({
-          paid: !currentPaid,
-          paid_date: !currentPaid ? getISTDate() : null,
-        })
-        .eq('id', feeId);
-      if (error) throw error;
+      if (existing) {
+        const newPaid = !existing.paid;
+        const { error } = await supabase
+          .from('fees')
+          .update({
+            paid: newPaid,
+            paid_date: newPaid ? getISTDate() : null,
+          })
+          .eq('id', existing.id);
+        if (error) throw error;
+        setToast({ message: `Fee marked as ${newPaid ? 'paid' : 'unpaid'}`, type: 'success' });
+      } else {
+        const { error } = await supabase
+          .from('fees')
+          .insert({
+            student_id: student.id,
+            month: monthStr,
+            paid: true,
+            paid_date: getISTDate(),
+          });
+        if (error) throw error;
+        setToast({ message: 'Fee marked as paid', type: 'success' });
+      }
       fetchFees();
-      setToast({ message: `Fee marked as ${!currentPaid ? 'paid' : 'unpaid'}`, type: 'success' });
     } catch (err: any) {
       setToast({ message: err.message, type: 'error' });
     }
@@ -277,6 +306,11 @@ const StudentProfile: React.FC = () => {
       setToast({ message: err.message, type: 'error' });
     }
   };
+
+  // Generate year options (2020-2030)
+  const yearOptions = [];
+  for (let y = 2020; y <= 2030; y++) yearOptions.push(y);
+  const monthNames = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
 
   if (!student) return <div className="text-center mt-5">Loading...</div>;
 
@@ -401,10 +435,24 @@ const StudentProfile: React.FC = () => {
 
           <hr />
 
-          {/* Fee Table */}
+          {/* Fee Table with Year/Month Filter */}
           <div className="row mt-4">
             <div className="col-md-12">
               <h4>Fee Details</h4>
+              <div className="row mb-3">
+                <div className="col-md-3">
+                  <label>Year</label>
+                  <select className="form-select" value={selectedYear} onChange={e => setSelectedYear(parseInt(e.target.value))}>
+                    {yearOptions.map(y => <option key={y} value={y}>{y}</option>)}
+                  </select>
+                </div>
+                <div className="col-md-3">
+                  <label>Month</label>
+                  <select className="form-select" value={selectedMonth} onChange={e => setSelectedMonth(parseInt(e.target.value))}>
+                    {monthNames.map((name, idx) => <option key={idx+1} value={idx+1}>{name}</option>)}
+                  </select>
+                </div>
+              </div>
               <div className="table-responsive">
                 <table className="table table-bordered">
                   <thead>
@@ -417,29 +465,36 @@ const StudentProfile: React.FC = () => {
                     </tr>
                   </thead>
                   <tbody>
-                    {fees.map(fee => (
-                      <tr key={fee.id}>
-                        <td>{new Date(fee.month).toLocaleDateString('en-IN', { month: 'long', year: 'numeric' })}</td>
-                        <td>{fee.paid ? 'Yes' : 'No'}</td>
-                        <td>{fee.paid_date ? new Date(fee.paid_date).toLocaleDateString() : '-'}</td>
-                        <td>{fee.remarks || '-'}</td>
+                    {currentFeeRecord ? (
+                      <tr>
+                        <td>{monthNames[selectedMonth-1]} {selectedYear}</td>
+                        <td>{currentFeeRecord.paid ? 'Yes' : 'No'}</td>
+                        <td>{currentFeeRecord.paid_date ? new Date(currentFeeRecord.paid_date).toLocaleDateString() : '-'}</td>
+                        <td>{currentFeeRecord.remarks || '-'}</td>
                         {user?.role === 'principal' && (
                           <td>
                             <button
-                              className={`btn btn-sm ${fee.paid ? 'btn-warning' : 'btn-success'}`}
-                              onClick={() => handleFeeToggle(fee.id, fee.paid)}
+                              className={`btn btn-sm ${currentFeeRecord.paid ? 'btn-warning' : 'btn-success'}`}
+                              onClick={handleFeeToggle}
                             >
-                              {fee.paid ? 'Mark Unpaid' : 'Mark Paid'}
+                              {currentFeeRecord.paid ? 'Mark Unpaid' : 'Mark Paid'}
                             </button>
                           </td>
                         )}
                       </tr>
-                    ))}
-                    {fees.length === 0 && (
+                    ) : (
                       <tr>
-                        <td colSpan={user?.role === 'principal' ? 5 : 4} className="text-center">
-                          No fee records found
-                        </td>
+                        <td>{monthNames[selectedMonth-1]} {selectedYear}</td>
+                        <td>No record</td>
+                        <td>-</td>
+                        <td>-</td>
+                        {user?.role === 'principal' && (
+                          <td>
+                            <button className="btn btn-sm btn-success" onClick={handleFeeToggle}>
+                              Mark Paid
+                            </button>
+                          </td>
+                        )}
                       </tr>
                     )}
                   </tbody>

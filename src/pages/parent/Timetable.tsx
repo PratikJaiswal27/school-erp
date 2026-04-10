@@ -3,8 +3,8 @@ import { useAuth } from '../../contexts/AuthContext';
 import { supabase } from '../../lib/supabase';
 import { formatISTTime } from '../../lib/utils';
 
-const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-const PERIODS = Array.from({ length: 8 }, (_, i) => i + 1);
+const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+const PERIODS = Array.from({ length: 7 }, (_, i) => i + 1);
 
 interface TimetableEntry {
   subject: string;
@@ -121,12 +121,27 @@ const ParentTimetable: React.FC = () => {
     }
   };
 
+  const renderPeriodCell = (day: string, period: number) => {
+    const entry = timetable[day]?.[period];
+    if (!entry) return <td key={period} data-label={`Period ${period}`}>-</td>;
+    return (
+      <td key={period} data-label={`Period ${period}`}>
+        <div><strong style={{ color: '#0d6efd' }}>{entry.subject}</strong></div>
+        <div className="mt-1">{entry.teacher_name}</div>
+      </td>
+    );
+  };
+
   if (loading) return <div className="text-center mt-5">Loading...</div>;
   if (error) return <div className="alert alert-danger">{error}</div>;
 
   return (
     <div className="container py-4">
       <h2>Timetable - {className}</h2>
+      <div className="mb-2">
+        <div className="text-muted">🍽️ Lunch break: 11:40 AM – 12:00 PM (after Period 4)</div>
+        <div className="text-muted">🏫 School Dispersal at 2:00 PM</div>
+      </div>
       <div className="table-responsive">
         <table className="table table-bordered">
           <thead>
@@ -136,22 +151,22 @@ const ParentTimetable: React.FC = () => {
             </tr>
           </thead>
           <tbody>
-            {DAYS.map(day => (
-              <tr key={day}>
-                <th className="sticky-col">{day}</th>
-                {PERIODS.map(period => {
-                  const entry = timetable[day]?.[period];
-                  if (!entry) return <td key={period}>-</td>;
-                  return (
-                    <td key={period}>
-                      <div><strong>{entry.subject}</strong></div>
-                      <div>{entry.teacher_name}</div>
-                      <div>{entry.start_time} - {entry.end_time}</div>
-                    </td>
-                  );
-                })}
-              </tr>
-            ))}
+            {DAYS.map(day => {
+              if (day === 'Saturday' || day === 'Sunday') {
+                return (
+                  <tr key={day}>
+                    <th className="sticky-col">{day}</th>
+                    <td colSpan={PERIODS.length} className="text-center text-muted">Holiday</td>
+                  </tr>
+                );
+              }
+              return (
+                <tr key={day}>
+                  <th className="sticky-col">{day}</th>
+                  {PERIODS.map(period => renderPeriodCell(day, period))}
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

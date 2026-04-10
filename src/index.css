@@ -1,4 +1,4 @@
-/* body {
+body {
   background-color: #f8f9fa;
 }
 
@@ -24,67 +24,45 @@
 
 /* Mobile responsive overrides */
 @media (max-width: 768px) {
-  /* Make cards stack vertically */
   .card-body .row > [class*="col-"] {
     margin-bottom: 1rem;
   }
-
-  /* Reduce padding on container */
   .container, .container-fluid {
     padding-left: 12px;
     padding-right: 12px;
   }
-
-  /* Sidebar menu text size */
   .offcanvas-body .nav-link {
     font-size: 1rem;
     padding: 0.75rem 1rem;
   }
-
-  /* Table font size slightly smaller */
   .table {
     font-size: 0.85rem;
   }
-
-  /* Form labels and inputs full width */
   .form-label, .form-control, .form-select, .btn {
     font-size: 0.9rem;
   }
-
-  /* Dashboard summary cards stack */
   .row.mb-4 > .col-md-3 {
     margin-bottom: 1rem;
   }
-
-  /* Student search bar width */
   .col-md-6.mx-auto {
     width: 100%;
   }
-
-  /* Attendance page – class filter and date picker stack */
   .row.mb-3 > .col-md-3,
   .row.mb-3 > .col-md-2 {
     margin-bottom: 0.75rem;
   }
-
-  /* Fees management – class, month, button stack */
   .row.mb-3 > .col-md-3,
   .row.mb-3 > .col-md-4 {
     margin-bottom: 0.75rem;
   }
-
-  /* Marks entry – class, exam, student selects stack */
   .row.mb-3 > .col-md-4 {
     margin-bottom: 0.75rem;
   }
-
-  /* Report cards filter */
   .mb-3 .form-select.w-auto {
     width: 100%;
   }
 }
 
-/* Extra small devices (phones under 576px) */
 @media (max-width: 576px) {
   .navbar-brand {
     font-size: 0.85rem;
@@ -101,7 +79,7 @@
   }
 }
 
-/* Students page – action buttons wrap on small screens */
+/* Students page – action buttons wrap */
 @media (max-width: 768px) {
   .students-action-buttons {
     display: flex;
@@ -114,7 +92,7 @@
   }
 }
 
-/* For the top action bar (Add Student, Import CSV, Template) */
+/* Top action bar (Add Student, etc.) */
 @media (max-width: 768px) {
   .d-flex.justify-content-between.align-items-center {
     flex-direction: column;
@@ -132,7 +110,7 @@
   }
 }
 
-/* Timetable – ensure cells don't overlap and have minimum width */
+/* Timetable cell min-width */
 .table-bordered td, .table-bordered th {
   white-space: nowrap;
   min-width: 100px;
@@ -148,7 +126,7 @@
   }
 }
 
-/* For mark attendance table (teacher) – radio buttons wrap */
+/* Mark attendance radio buttons */
 @media (max-width: 768px) {
   .btn-group-sm .btn {
     padding: 0.2rem 0.4rem;
@@ -156,7 +134,7 @@
   }
 }
 
-/* Student table action buttons container – target td's buttons */
+/* Student table action buttons */
 .table td:last-child {
   white-space: nowrap;
 }
@@ -167,5 +145,85 @@
   .table td:last-child .btn {
     margin-bottom: 0.25rem;
     display: inline-block;
+  }
+}
+
+/* Mobile card layout for timetable (Isme marks-table ko ignore kiya hai) */
+@media (max-width: 768px) {
+  .table-bordered:not(.marks-table),
+  .table-bordered:not(.marks-table) thead,
+  .table-bordered:not(.marks-table) tbody,
+  .table-bordered:not(.marks-table) tr,
+  .table-bordered:not(.marks-table) th,
+  .table-bordered:not(.marks-table) td {
+    display: block;
+  }
+  .table-bordered:not(.marks-table) thead {
+    display: none;
+  }
+  .table-bordered:not(.marks-table) tr {
+    margin-bottom: 1rem;
+    border: 1px solid #dee2e6;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .table-bordered:not(.marks-table) td,
+  .table-bordered:not(.marks-table) th {
+    border: none;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem;
+    border-bottom: 1px solid #eee;
+  }
+  .table-bordered:not(.marks-table) td:first-child,
+  .table-bordered:not(.marks-table) th:first-child {
+    background-color: #0d6efd;
+    color: white;
+    font-weight: bold;
+    font-size: 1rem;
+    justify-content: center;
+  }
+  .table-bordered:not(.marks-table) td:not(:first-child)::before {
+    content: attr(data-label);
+    font-weight: bold;
+    width: 40%;
+    text-align: left;
+  }
+  .table-bordered:not(.marks-table) td:not(:first-child) {
+    justify-content: space-between;
+    text-align: right;
+  }
+}
+
+/* Modal responsive for mobile */
+@media (max-width: 768px) {
+  .modal-dialog {
+    width: 95%;
+    max-width: 500px;
+    margin: 1.75rem auto;
+  }
+  .modal-content {
+    padding: 0.5rem;
+  }
+  .modal-body {
+    max-height: 70vh;
+    overflow-y: auto;
+  }
+}
+
+/* Fix navbar overlap on mobile */
+@media (max-width: 768px) {
+  .flex-grow-1.p-4 {
+    padding-top: 70px !important;
+  }
+}
+
+/* Keep marks entry table as a normal horizontally scrolling table on mobile */
+@media (max-width: 768px) {
+  .marks-table th,
+  .marks-table td {
+    white-space: nowrap;
+    min-width: 120px; /* Isse inputs squish nahi honge */
   }
 }
